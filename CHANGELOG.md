@@ -1,5 +1,9 @@
 # Changelog
 
+## CM 0.1.2
+
+- Small sunspots now only generate when large sunspots are present
+
 ## CM 0.1.1
 
 - Fixed sunspots erroneously appearing on red giants

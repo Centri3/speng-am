@@ -151,16 +151,16 @@ layout(location = 0) out vec4 out_color;
 #define sun_gran_freq hills_freq
 #define sun_gran_octaves cracks_octaves
 #define sun_gran_temp_distort canyons_magn
+#define sun_gran_top_temp icecap_lat
+#define sun_gran_bot_temp tropic_lat
 #define sun_spot_rad_inner climate_steppe_min
 #define sun_spot_rad_outer climate_steppe_max
 #define sun_spot_freq vec2(mare_freq, rivers_freq)
 #define sun_spot_density vec2(mare_density, rivers_sin)
-#define sun_spot_filament_temp climate_forest_min
-#define sun_spot_filament_freq montes_freq
-#define sun_gran_top_temp icecap_lat
-#define sun_gran_bot_temp tropic_lat
 #define sun_spot_max_lat climate_pole
 #define sun_spot_min_lat climate_tropic
+#define sun_spot_filament_freq montes_freq
+#define sun_spot_filament_temp climate_forest_min
 #define sun_factor erosion
 
 #uniform_block
@@ -306,189 +306,6 @@ vec3 get_surface_point()
         else
             return vec3( p.x, -p.y,  p.z);  // pos_z
     }
-}
-
-float encode_temp(float temp) {
-    return clamp(temp * (1000.0f / 65535.0f), 0.0f, 1.0f);
-}
-
-struct Sunspots {
-    float spot_mask;
-    float fila_mask;
-    float filas;
-};
-
-Sunspots get_sun_spots(vec3 coords, float freq, float density, vec3 randomize, NoiseParams noise) {
-    vec3 binormal = normalize(coords);
-
-    float _lat = abs(coords.y);
-
-    noise.octaves = 8;
-
-    Sunspots sunspots = Sunspots(1.0, 1.0, 0.0);
-
-    float fi, rnd, t;
-    vec4 cell;
-    float rad_factor = 0.8 / density;
-
-    float rad_inner = unwrap_or(sun_spot_rad_inner, 0.1f) * 2.0f;
-    float rad_outer = unwrap_or(sun_spot_rad_outer, 0.175f) * 4.0f;
-
-    noise.h = 0.8;
-
-    vec3 dist = vec3(0.01f * noise_fbm_float(coords * 3.6 + randomize, noise)
-        * dot(noise_u_float(coords + randomize), 120.0)
-        + noise_fbm_float(coords + randomize, NoiseParams(8.8, 10, 0.8, 0.5, 0.0001, 0.0, 1.0))
-    );
-    coords += dist * 0.5;
-
-    float lat = abs(coords.y);
-
-    if (lat > unwrap_or(sun_spot_max_lat, 1.0f) * (1.0f + pow(0.1f, unwrap_or(sun_spot_max_lat, 1.0f))) || lat < unwrap_or(sun_spot_min_lat, 0.0f)) {
-        sunspots.fila_mask = 0.0;
-        sunspots.spot_mask = 1.0;
-    } else {
-        cell = cell2_noise_sphere(coords, freq * 0.3 * density);
-
-        fi = acos(dot(binormal, normalize(cell.xyz - coords))) / TAU;
-
-        t = saturate((cell.w * rad_factor - rad_inner) / (rad_outer - rad_inner));
-        sunspots.spot_mask *= smoothstep(0.0, 0.2, t);
-        sunspots.fila_mask *= (1.0 - smoothstep(0.0, 1.0, t)) * smoothstep(0.0, 0.0, t) * 0.85;
-        sunspots.filas += noise_u_float(vec3(sun_spot_filament_freq * fi, rnd, rnd)) * t * 0.5;
-    }
-
-    return sunspots;
-}
-
-float get_sun_map(vec3 coords, bool is_height) {
-    float sun_flow_magn_x = unwrap_with_or(0.0f, sun_flow_magn.x, 1.0f);
-    float sun_flow_freq_x = unwrap_with_or(0.0f, sun_flow_freq.x, 40.0f);
-    float sun_flow_octaves_x = unwrap_or(sun_flow_octaves.x, 5.0f);
-    float sun_flow_magn_y = unwrap_or(sun_flow_magn.y, 3.0f / sun_surf_temp);
-    float sun_flow_freq_y = unwrap_or(sun_flow_freq.y, 0.0f);
-    float sun_flow_octaves_y = unwrap_or(sun_flow_octaves.y, 15.0f);
-    float sun_spot_freq_x = unwrap_with_or(0.0f, sun_spot_freq.x, 20.0f);
-    float sun_spot_freq_y = unwrap_or(sun_spot_freq.y, 0.2f) * 100.0f;
-    float sun_spot_density_x = unwrap_with_or(0.0f, sun_spot_density.x, 0.0f);
-    float sun_spot_density_y = unwrap_or(sun_spot_density.y, 1.0f) * 0.1f;
-
-    // TODO: This can be done by passing `true` in the brown dwarf shader y'doofus
-    bool is_brown_dwarf = sun_gran_freq < 0.001f;
-    bool is_red_giant = sun_gran_freq < 90.0f;
-
-    vec3 randomize = unwrap_star_randomize_or(
-        randomize,
-        hash3(vec2(sun_surf_temp, sun_surf_temp))
-    );
-
-    // TODO: We don't need these variables
-    float _sun_flow_octaves_x = sun_flow_octaves_x;
-    float _sun_flow_octaves_y = sun_flow_octaves_y;
-    float _sun_gran_magn = sun_gran_magn;
-    float _sun_gran_freq = sun_gran_freq;
-    float _sun_gran_octaves = sun_gran_octaves;
-    float _sun_gran_temp_distort = sun_gran_temp_distort;
-    float _sun_gran_top_temp = sun_gran_top_temp;
-    float _sun_gran_bot_temp = sun_gran_bot_temp;
-    if (is_red_giant) {
-        _sun_flow_octaves_x = 1.0f;
-        _sun_flow_octaves_y = 1.0f;
-        _sun_gran_magn = min(_sun_gran_magn, 1.4f);
-        _sun_gran_freq *= 20.0;
-        _sun_gran_octaves = 10.0f;
-        _sun_gran_temp_distort = 2.0f;
-        _sun_gran_top_temp = 1.0f;
-        _sun_gran_bot_temp = 0.8f;
-
-        sun_spot_freq_x = 0.0f;
-        sun_spot_density_x = 0.0f;
-        sun_spot_freq_y = 0.0f;
-        sun_spot_density_y = 0.0f;
-    }
-    if (is_brown_dwarf) {
-        // Can be 0 on high mass brown dwarfs
-        _sun_gran_freq = 10.0f * min(pow(sun_surf_temp, 30.0f), 1.0f) * pow(sun_surf_temp, 2.0f);
-    }
-
-    NoiseParams noise = NoiseParams(
-        2.218281828459,
-        _sun_gran_octaves,
-        0.1,
-        0.8,
-        0.0001,
-        0.0,
-        1.0
-    );
-
-    vec3 point = coords * vec3(1.0) + randomize;
-    vec3 dist = 2.5 * noise_fbm_vec3(point * 0.5, noise);
-
-    noise.h = 0.0;
-    noise.octaves = _sun_flow_octaves_x;
-
-    float small_flows = sun_flow_magn_x * 0.1
-        * noise_fbm_float(point * pow(sun_flow_freq_x, 2.0f) + dist, noise);
-
-    noise.octaves = _sun_flow_octaves_y;
-
-    float large_flows = sun_flow_magn_y * 0.1
-        * noise_fbm_float(point * pow(sun_flow_freq_y, 2.0f) + dist, noise);
-
-    noise.octaves = 2;
-
-    point = coords * _sun_gran_freq / 3.0f + randomize;
-    dist = vec3(_sun_gran_temp_distort * noise_fbm_float(point * 0.2, noise));
-
-    vec2 cell = cell3_noise_vec2(point + dist);
-    float gran = smoothstep(0.1, 1.0, sqrt(abs(cell.y - cell.x)));
-
-    Sunspots large_sunspots = Sunspots(1.0, 0.0, 0.0);
-    Sunspots small_sunspots = Sunspots(1.0, 0.0, 0.0);
-
-    if ((sun_spot_density.x > 0.01 || sun_spot_density_y > 0.01) && !is_red_giant) {
-        noise.octaves = 5;
-
-        large_sunspots = get_sun_spots(coords, sun_spot_freq_x, sun_spot_density_x, randomize, noise);
-        small_sunspots = get_sun_spots(coords, sun_spot_freq_y, sun_spot_density_y, randomize, noise);
-    }
-
-    float fila_temp = unwrap_or(sun_spot_filament_temp, sun_gran_top_temp * 0.8);
-    float spot_temp = 0.0f;
-    float sunspots = mix(spot_temp, 1.0f, large_sunspots.spot_mask * small_sunspots.spot_mask)
-        * (1.0f - (large_sunspots.fila_mask + small_sunspots.fila_mask))
-        + (large_sunspots.fila_mask + small_sunspots.fila_mask)
-        * mix(spot_temp, fila_temp, large_sunspots.filas + small_sunspots.filas)
-        * min(large_sunspots.spot_mask * small_sunspots.spot_mask + 0.04f, 1.0f);
-
-    if (is_height) {
-        float height = gran * ((0.1f + 0.4f * float(is_red_giant)) / max(sun_gran_freq, 1.0f)) * sunspots;
-
-        height = soft_poly_min(height, 0.99, 0.3);
-        height = soft_poly_max(height, 0.01, 0.3);
-
-        return height;
-    }
-
-    return (large_flows + small_flows
-        + mix(
-            _sun_gran_bot_temp,
-            _sun_gran_top_temp,
-            gran * min(
-                large_sunspots.spot_mask * small_sunspots.spot_mask + 0.04f,
-                1.0f
-            )
-        ))
-        * 1.3f
-        * sunspots;
-}
-
-float get_sun_glow_map(vec3 coords) {
-    return get_sun_map(coords, false);
-}
-
-float get_sun_height_map(vec3 coords) {
-    return get_sun_map(coords, true);
 }
 
 // Below is unedited from SE.
@@ -756,5 +573,7 @@ vec4    GetGasGiantCloudsColor(float height)
     const float hMax   = 1.0 - 0.5 * hScale;
     return texture(biome_data_table, vec2(1.0, clamp(height * hScale, hMin, hMax)));
 }
+
+#include "libcst_stars.glh"
 
 #endif

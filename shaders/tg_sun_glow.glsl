@@ -7,7 +7,7 @@
 #ifdef _FRAGMENT_
 
 void main() {
-    out_color = vec4(encode_temp(get_sun_glow_map(get_surface_point()) * sun_surf_temp));
+    out_color = vec4(encode_temp(get_main_sequence_glow_map(get_surface_point()) * sun_surf_temp));
 }
 
 #endif
