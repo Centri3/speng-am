@@ -373,6 +373,7 @@ float get_sun_map(vec3 coords, bool is_height) {
     float sun_spot_density_x = unwrap_with_or(0.0f, sun_spot_density.x, 0.0f);
     float sun_spot_density_y = unwrap_or(sun_spot_density.y, 1.0f) * 0.1f;
 
+    // TODO: This can be done by passing `true` in the brown dwarf shader y'doofus
     bool is_brown_dwarf = sun_gran_freq < 0.001f;
     bool is_red_giant = sun_gran_freq < 90.0f;
 
