@@ -368,17 +368,20 @@ float get_sun_map(vec3 coords, bool is_height) {
     float sun_flow_magn_y = unwrap_or(sun_flow_magn.y, 3.0f / sun_surf_temp);
     float sun_flow_freq_y = unwrap_or(sun_flow_freq.y, 0.0f);
     float sun_flow_octaves_y = unwrap_or(sun_flow_octaves.y, 15.0f);
+    float sun_spot_freq_x = unwrap_with_or(0.0f, sun_spot_freq.x, 20.0f);
     float sun_spot_freq_y = unwrap_or(sun_spot_freq.y, 0.2f) * 100.0f;
+    float sun_spot_density_x = unwrap_with_or(0.0f, sun_spot_density.x, 0.0f);
     float sun_spot_density_y = unwrap_or(sun_spot_density.y, 1.0f) * 0.1f;
 
-    bool is_brown_dwarf = sun_gran_freq < 1.0f;
-    bool is_red_giant = sun_gran_freq < 5.0f;
+    bool is_brown_dwarf = sun_gran_freq < 0.001f;
+    bool is_red_giant = sun_gran_freq < 90.0f;
 
     vec3 randomize = unwrap_star_randomize_or(
         randomize,
         hash3(vec2(sun_surf_temp, sun_surf_temp))
     );
 
+    // TODO: We don't need these variables
     float _sun_flow_octaves_x = sun_flow_octaves_x;
     float _sun_flow_octaves_y = sun_flow_octaves_y;
     float _sun_gran_magn = sun_gran_magn;
@@ -396,6 +399,11 @@ float get_sun_map(vec3 coords, bool is_height) {
         _sun_gran_temp_distort = 2.0f;
         _sun_gran_top_temp = 1.0f;
         _sun_gran_bot_temp = 0.8f;
+
+        sun_spot_freq_x = 0.0f;
+        sun_spot_density_x = 0.0f;
+        sun_spot_freq_y = 0.0f;
+        sun_spot_density_y = 0.0f;
     }
     if (is_brown_dwarf) {
         // Can be 0 on high mass brown dwarfs
@@ -440,8 +448,8 @@ float get_sun_map(vec3 coords, bool is_height) {
     if ((sun_spot_density.x > 0.01 || sun_spot_density_y > 0.01) && !is_red_giant) {
         noise.octaves = 5;
 
-        large_sunspots = get_sun_spots(coords, sun_spot_freq.x, sun_spot_density.x, randomize, noise);
-        small_sunspots = get_sun_spots(coords, sun_spot_freq.y, sun_spot_density_y, randomize, noise);
+        large_sunspots = get_sun_spots(coords, sun_spot_freq_x, sun_spot_density_x, randomize, noise);
+        small_sunspots = get_sun_spots(coords, sun_spot_freq_y, sun_spot_density_y, randomize, noise);
     }
 
     float fila_temp = unwrap_or(sun_spot_filament_temp, sun_gran_top_temp * 0.8);
@@ -453,7 +461,7 @@ float get_sun_map(vec3 coords, bool is_height) {
         * min(large_sunspots.spot_mask * small_sunspots.spot_mask + 0.04f, 1.0f);
 
     if (is_height) {
-        float height = gran * (0.1f + 0.4f * float(is_red_giant)) * sunspots;
+        float height = gran * ((0.1f + 0.4f * float(is_red_giant)) / max(sun_gran_freq, 1.0f)) * sunspots;
 
         height = soft_poly_min(height, 0.99, 0.3);
         height = soft_poly_max(height, 0.01, 0.3);

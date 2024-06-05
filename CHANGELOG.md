@@ -1,5 +1,10 @@
 # Changelog
 
+## CM 0.1.1
+
+- Fixed sunspots erroneously appearing on red giants
+- Fixed occasional height anomalies of red giant granularities
+
 ## CM 0.1.0
 
 - Custom stellar surfaces
