@@ -1,0 +1,751 @@
+// Common procedural planet generator routines
+// This is include file for the procedural planet generator shaders
+// Copyright (C) 2012-2022  Vladimir Romanyuk @ Cosmographic Software
+// All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions
+// are met:
+// 1. Redistributions of source code must retain the above copyright
+//    notice, this list of conditions and the following disclaimer.
+// 2. Redistributions in binary form must reproduce the above copyright
+//    notice, this list of conditions and the following disclaimer in the
+//    documentation and/or other materials provided with the distribution.
+// 3. Neither the name of the copyright holders nor the names of its
+//    contributors may be used to endorse or promote products derived from
+//    this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+// ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+// INTERRUPTION)HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+// THE POSSIBILITY OF SUCH DAMAGE.
+
+#ifdef _VERTEX_
+
+layout(location = 0) in vec4 in_vert_pos;
+layout(location = 1) in vec4 in_vert_tex_coord;
+
+out vec4  out_tex_coord;
+
+void main()
+{
+    gl_Position = in_vert_pos;
+    out_tex_coord = in_vert_tex_coord;
+}
+
+#else
+
+#include "libcst_shared.glh"
+
+in vec4 out_tex_coord;
+#define in_tex_coord out_tex_coord
+
+layout(location = 0) out vec4 out_color;
+
+#define sea_level mareParams.x
+#define snow_level lavaParams.y
+#define randomize Randomize
+#define main_freq mainParams.x
+#define venus_magn textureParams.z
+#define venus_freq textureParams.w
+#define color_dist_magn colorParams.x
+#define color_dist_freq colorParams.y
+#define driven_darkening dunesParams.w
+#define climate_pole climateParams.x
+#define climate_tropic climateParams.y
+#define climate_equator climateParams.z
+#define climate_grass_min plantsParams1.x
+#define climate_grass_max plantsParams1.y
+#define climate_forest_min plantsParams1.z
+#define climate_forest_max plantsParams1.w
+#define climate_steppe_min plantsParams2.x
+#define climate_steppe_max plantsParams2.y
+#define humidity plantsParams2.z
+#define height_temp_grad lavaParams.w
+#define beach_width riversParams.w
+#define tropic_width climateParams.w
+#define tropic_lat colorParams.w
+#define icecap_lat colorParams.z
+#define icecap_height mareParams.w
+#define plants_curr_biome int(plantsParams2.w)
+#define mare_freq mareParams.y
+#define mare_density mareParams.z
+#define terrace_prob mainParams.y
+#define erosion canyonsParams.w
+#define montes_magn montesParams.x
+#define montes_freq montesParams.y
+#define montes_fraction montesParams.z
+#define montes_spiky montesParams.w
+#define dunes_magn dunesParams.x
+#define dunes_freq dunesParams.y
+#define dunes_fraction dunesParams.z
+#define hills_magn hillsParams.x
+#define hills_freq hillsParams.y
+#define hills_fraction hillsParams.zw
+#define canyons_magn canyonsParams.x
+#define canyons_freq canyonsParams.y
+#define canyons_fraction canyonsParams.z
+#define rivers_magn riversParams.x
+#define rivers_freq riversParams.y
+#define rivers_sin riversParams.z
+#define rifts_magn riftsParams.x
+#define rifts_freq riftsParams.y
+#define rifts_sin riftsParams.z
+#define eqridge_magn eqridgeParams.x
+#define eqridge_min_lat eqridgeParams.y
+#define eqridge_mod_magn eqridgeParams.z
+#define eqridge_mod_freq eqridgeParams.w
+#define cracks_magn cracksParams.x
+#define cracks_freq cracksParams.y
+#define cracks_octaves cracksParams.z
+#define crater_magn craterParams.x
+#define crater_freq craterParams.y
+#define crater_density craterParams.z
+#define crater_octaves craterParams.w
+#define crater_rayed_factor cracksParams.w
+#define volcanoes_magn volcanoParams1.x
+#define volcanoes_radius volcanoParams2.z
+#define volcanoes_freq volcanoParams1.y
+#define volcanoes_density volcanoParams1.z
+#define volcanoes_octaves volcanoParams1.w
+#define volcanoes_flows volcanoParams2.y
+#define volcanoes_temp volcanoParams2.w
+#define volcanoes_activity volcanoParams2.x
+#define lava_cover lavaParams.x
+
+#define clouds_curr_layer cloudsParams2.x
+#define clouds_num_layers cloudsParams2.y
+#define clouds_tidally_locked mainParams.w
+#define clouds_coverage cloudsParams2.w
+#define clouds_freq cloudsParams1.x
+#define clouds_octaves cloudsParams1.y
+#define clouds_stripe_zones cloudsParams1.z
+#define clouds_stripe_twist cloudsParams1.w
+#define clouds_stripe_fluct cloudsParams2.z
+#define clouds_equatorial_cyclone_magn cycloneParams.x
+#define clouds_equatorial_cyclones_freq cycloneParams.y
+#define clouds_equatorial_cyclones_density cycloneParams.z
+#define clouds_equatorial_cyclones_octaves cycloneParams.w
+#define clouds_polar_cyclones_magn cycloneParams2.x
+#define clouds_polar_cyclones_freq cycloneParams2.y
+#define clouds_polar_cyclones_latitude cycloneParams2.z
+#define clouds_polar_cyclones_octaves cycloneParams2.w
+
+#define tex_scale textureParams.x
+
+#define color_vary colorParams2.xyz
+#define color_gamma colorParams2.www
+
+#define sun_surf_temp lavaParams.z
+#define sun_flow_magn vec2(color_dist_magn, crater_magn)
+#define sun_flow_freq vec2(color_dist_freq, crater_freq)
+#define sun_flow_octaves vec2(volcanoes_octaves, crater_octaves)
+#define sun_gran_magn hills_magn
+#define sun_gran_freq hills_freq
+#define sun_gran_octaves cracks_octaves
+#define sun_gran_temp_distort canyons_magn
+#define sun_spot_rad_inner climate_steppe_min
+#define sun_spot_rad_outer climate_steppe_max
+#define sun_spot_freq vec2(mare_freq, rivers_freq)
+#define sun_spot_density vec2(mare_density, rivers_sin)
+#define sun_spot_filament_temp climate_forest_min
+#define sun_spot_filament_freq montes_freq
+#define sun_gran_top_temp icecap_lat
+#define sun_gran_bot_temp tropic_lat
+#define sun_spot_max_lat climate_pole
+#define sun_spot_min_lat climate_tropic
+#define sun_factor erosion
+
+#uniform_block
+
+uniform sampler3D       Noise3DSampler;     // precomputed noise texture
+uniform sampler2D       Noise2DSampler;     // precomputed noise texture
+uniform sampler2D       PermSampler;        // permutation table for Perlin noise
+uniform sampler1D       PermGradSampler;    // permutted gradient table for Perlin noise
+uniform sampler2DArray  HeightMapArray;     // height map
+uniform sampler2DArray  NormalMapArray;     // normals map to calculate slope
+uniform sampler2DArray  SampleMapArray;     // color sample maps
+uniform sampler2D       BiomeDataTable;     // palette parameters table
+
+#define noise_3d Noise3DSampler
+#define noise_2d Noise2DSampler
+#define perm_sampler PermSampler
+#define perm_grad_sampler PermGradSampler
+#define height_map_array HeightMapArray
+#define normal_map_array NormalMapArray
+#define sample_map_array SampleMapArray
+#define biome_data_table BiomeDataTable
+
+#define noise_nearest_u_float(coords) texture(noise_3d, coords).r
+#define noise_nearest_u_vec3(coords) texture(noise_3d, coords).rgb
+#define noise_nearest_u_vec4(coords) texture(noise_3d, coords)
+
+vec4 cell2_noise_sphere(vec3 p, float radius)
+{
+    p *= radius;
+    vec3  cell = floor(p);
+    vec3  offs = p - cell - vec3(0.5);
+    vec3  pos;
+    vec3  point = vec3(0.0);
+    vec3  rnd;
+    vec3  d;
+    float distMin = 1.0e38;
+    float dist;
+    for (d.z=-1.0; d.z<1.0; d.z+=1.0)
+    {
+        for (d.y=-1.0; d.y<1.0; d.y+=1.0)
+        {
+            for (d.x=-1.0; d.x<1.0; d.x+=1.0)
+            {
+                rnd = noise_nearest_u_vec4((cell + d) / NOISE_TEX_3D_SIZE).xyz + d;
+                pos = rnd - offs;
+                dist = dot(pos, pos);
+                if (distMin > dist)
+                {
+                    distMin = dist;
+                    point = rnd;
+                }
+            }
+        }
+    }
+    point = normalize(point + cell + vec3(0.5));
+    return vec4(point, length(point * radius - p));
+}
+
+vec2 cell3_noise_vec2(vec3 p) {
+    vec3  cell = floor(p);
+    vec3  offs = p - cell;
+    vec3  pos;
+    vec3  rnd;
+    vec3  d;
+    float dist;
+    float distMin1 = 1.0e38;
+    float distMin2 = 1.0e38;
+    for (d.z=-1.0; d.z<2.0; d.z+=1.0)
+    {
+        for (d.y=-1.0; d.y<2.0; d.y+=1.0)
+        {
+            for (d.x=-1.0; d.x<2.0; d.x+=1.0)
+            {
+                rnd = noise_nearest_u_vec4((cell + d) / NOISE_TEX_3D_SIZE).xyz + d;
+                pos = rnd - offs;
+                dist = dot(pos, pos);
+                if (dist < distMin1)
+                {
+                    distMin2 = distMin1;
+                    distMin1 = dist;
+                }
+                else
+                    distMin2 = min(distMin2, dist);
+            }
+        }
+    }
+    return sqrt(vec2(distMin1, distMin2));
+}
+
+const float NO_DATA = -1e+38;
+const vec3 STARS_RANDOMIZE = vec3(-0.4428662062, 0.6390675306, 0.3357337713);
+
+vec2 unwrap_with_or(vec2 eq, vec2 option, vec2 _default) {
+    if (option == eq) {
+        return _default;
+    } else {
+        return option;
+    }
+}
+
+vec3 unwrap_with_or(vec3 eq, vec3 option, vec3 _default) {
+    if (option == eq) {
+        return _default;
+    } else {
+        return option;
+    }
+}
+
+float unwrap_with_or(float eq, float option, float _default) {
+    bool is_eq = abs(option - eq) > 0.01;
+
+    return option * float(is_eq) + _default * float(!is_eq);
+}
+
+#define unwrap_or(option, _default) unwrap_with_or(NO_DATA, option, _default)
+#define unwrap_star_randomize_or(option, _default) unwrap_with_or(STARS_RANDOMIZE, option, _default)
+
+vec3 get_surface_point()
+{
+    vec2 spherical;
+    if (faceParams.w == 6.0)    // global
+    {
+        spherical.x = (in_tex_coord.x * 2.0 - 0.5) * PI;
+        spherical.y = (0.5 - in_tex_coord.y) * PI;
+        vec2 alpha = vec2(sin(spherical.x), cos(spherical.x));
+        vec2 delta = vec2(sin(spherical.y), cos(spherical.y));
+        return vec3(delta.y*alpha.x, delta.x, delta.y*alpha.y);
+    }
+    else                        // cubemap
+    {
+        spherical = in_tex_coord.xy * faceParams.z + faceParams.xy;
+        vec3 p = normalize(vec3(spherical, 1.0));
+        if (faceParams.w == 0.0)
+            return vec3( p.z, -p.y, -p.x);  // neg_x
+        else if (faceParams.w == 1.0)
+            return vec3(-p.z, -p.y,  p.x);  // pos_x
+        else if (faceParams.w == 2.0)
+            return vec3( p.x, -p.z, -p.y);  // neg_y
+        else if (faceParams.w == 3.0)
+            return vec3( p.x,  p.z,  p.y);  // pos_y
+        else if (faceParams.w == 4.0)
+            return vec3(-p.x, -p.y, -p.z);  // neg_z
+        else
+            return vec3( p.x, -p.y,  p.z);  // pos_z
+    }
+}
+
+float encode_temp(float temp) {
+    return clamp(temp * (1000.0f / 65535.0f), 0.0f, 1.0f);
+}
+
+struct Sunspots {
+    float spot_mask;
+    float fila_mask;
+    float filas;
+};
+
+Sunspots get_sun_spots(vec3 coords, float freq, float density, vec3 randomize, NoiseParams noise) {
+    vec3 binormal = normalize(coords);
+
+    float _lat = abs(coords.y);
+
+    noise.octaves = 8;
+
+    Sunspots sunspots = Sunspots(1.0, 1.0, 0.0);
+
+    float fi, rnd, t;
+    vec4 cell;
+    float rad_factor = 0.8 / density;
+
+    float rad_inner = unwrap_or(sun_spot_rad_inner, 0.1f) * 2.0f;
+    float rad_outer = unwrap_or(sun_spot_rad_outer, 0.175f) * 4.0f;
+
+    noise.h = 0.8;
+
+    vec3 dist = vec3(0.01f * noise_fbm_float(coords * 3.6 + randomize, noise)
+        * dot(noise_u_float(coords + randomize), 120.0)
+        + noise_fbm_float(coords + randomize, NoiseParams(8.8, 10, 0.8, 0.5, 0.0001, 0.0, 1.0))
+    );
+    coords += dist * 0.5;
+
+    float lat = abs(coords.y);
+
+    if (lat > unwrap_or(sun_spot_max_lat, 1.0f) * (1.0f + pow(0.1f, unwrap_or(sun_spot_max_lat, 1.0f))) || lat < unwrap_or(sun_spot_min_lat, 0.0f)) {
+        sunspots.fila_mask = 0.0;
+        sunspots.spot_mask = 1.0;
+    } else {
+        cell = cell2_noise_sphere(coords, freq * 0.3 * density);
+
+        fi = acos(dot(binormal, normalize(cell.xyz - coords))) / TAU;
+
+        t = saturate((cell.w * rad_factor - rad_inner) / (rad_outer - rad_inner));
+        sunspots.spot_mask *= smoothstep(0.0, 0.2, t);
+        sunspots.fila_mask *= (1.0 - smoothstep(0.0, 1.0, t)) * smoothstep(0.0, 0.0, t) * 0.85;
+        sunspots.filas += noise_u_float(vec3(sun_spot_filament_freq * fi, rnd, rnd)) * t * 0.5;
+    }
+
+    return sunspots;
+}
+
+float get_sun_map(vec3 coords, bool is_height) {
+    float sun_flow_magn_x = unwrap_with_or(0.0f, sun_flow_magn.x, 1.0f);
+    float sun_flow_freq_x = unwrap_with_or(0.0f, sun_flow_freq.x, 40.0f);
+    float sun_flow_octaves_x = unwrap_or(sun_flow_octaves.x, 5.0f);
+    float sun_flow_magn_y = unwrap_or(sun_flow_magn.y, 3.0f / sun_surf_temp);
+    float sun_flow_freq_y = unwrap_or(sun_flow_freq.y, 0.0f);
+    float sun_flow_octaves_y = unwrap_or(sun_flow_octaves.y, 15.0f);
+    float sun_spot_freq_y = unwrap_or(sun_spot_freq.y, 0.2f) * 100.0f;
+    float sun_spot_density_y = unwrap_or(sun_spot_density.y, 1.0f) * 0.1f;
+
+    bool is_brown_dwarf = sun_gran_freq < 1.0f;
+    bool is_red_giant = sun_gran_freq < 5.0f;
+
+    vec3 randomize = unwrap_star_randomize_or(
+        randomize,
+        hash3(vec2(sun_surf_temp, sun_surf_temp))
+    );
+
+    float _sun_flow_octaves_x = sun_flow_octaves_x;
+    float _sun_flow_octaves_y = sun_flow_octaves_y;
+    float _sun_gran_magn = sun_gran_magn;
+    float _sun_gran_freq = sun_gran_freq;
+    float _sun_gran_octaves = sun_gran_octaves;
+    float _sun_gran_temp_distort = sun_gran_temp_distort;
+    float _sun_gran_top_temp = sun_gran_top_temp;
+    float _sun_gran_bot_temp = sun_gran_bot_temp;
+    if (is_red_giant) {
+        _sun_flow_octaves_x = 1.0f;
+        _sun_flow_octaves_y = 1.0f;
+        _sun_gran_magn = min(_sun_gran_magn, 1.4f);
+        _sun_gran_freq *= 20.0;
+        _sun_gran_octaves = 10.0f;
+        _sun_gran_temp_distort = 2.0f;
+        _sun_gran_top_temp = 1.0f;
+        _sun_gran_bot_temp = 0.8f;
+    }
+    if (is_brown_dwarf) {
+        // Can be 0 on high mass brown dwarfs
+        _sun_gran_freq = 10.0f * min(pow(sun_surf_temp, 30.0f), 1.0f) * pow(sun_surf_temp, 2.0f);
+    }
+
+    NoiseParams noise = NoiseParams(
+        2.218281828459,
+        _sun_gran_octaves,
+        0.1,
+        0.8,
+        0.0001,
+        0.0,
+        1.0
+    );
+
+    vec3 point = coords * vec3(1.0) + randomize;
+    vec3 dist = 2.5 * noise_fbm_vec3(point * 0.5, noise);
+
+    noise.h = 0.0;
+    noise.octaves = _sun_flow_octaves_x;
+
+    float small_flows = sun_flow_magn_x * 0.1
+        * noise_fbm_float(point * pow(sun_flow_freq_x, 2.0f) + dist, noise);
+
+    noise.octaves = _sun_flow_octaves_y;
+
+    float large_flows = sun_flow_magn_y * 0.1
+        * noise_fbm_float(point * pow(sun_flow_freq_y, 2.0f) + dist, noise);
+
+    noise.octaves = 2;
+
+    point = coords * _sun_gran_freq / 3.0f + randomize;
+    dist = vec3(_sun_gran_temp_distort * noise_fbm_float(point * 0.2, noise));
+
+    vec2 cell = cell3_noise_vec2(point + dist);
+    float gran = smoothstep(0.1, 1.0, sqrt(abs(cell.y - cell.x)));
+
+    Sunspots large_sunspots = Sunspots(1.0, 0.0, 0.0);
+    Sunspots small_sunspots = Sunspots(1.0, 0.0, 0.0);
+
+    if ((sun_spot_density.x > 0.01 || sun_spot_density_y > 0.01) && !is_red_giant) {
+        noise.octaves = 5;
+
+        large_sunspots = get_sun_spots(coords, sun_spot_freq.x, sun_spot_density.x, randomize, noise);
+        small_sunspots = get_sun_spots(coords, sun_spot_freq.y, sun_spot_density_y, randomize, noise);
+    }
+
+    float fila_temp = unwrap_or(sun_spot_filament_temp, sun_gran_top_temp * 0.8);
+    float spot_temp = 0.0f;
+    float sunspots = mix(spot_temp, 1.0f, large_sunspots.spot_mask * small_sunspots.spot_mask)
+        * (1.0f - (large_sunspots.fila_mask + small_sunspots.fila_mask))
+        + (large_sunspots.fila_mask + small_sunspots.fila_mask)
+        * mix(spot_temp, fila_temp, large_sunspots.filas + small_sunspots.filas)
+        * min(large_sunspots.spot_mask * small_sunspots.spot_mask + 0.04f, 1.0f);
+
+    if (is_height) {
+        float height = gran * (0.1f + 0.4f * float(is_red_giant)) * sunspots;
+
+        height = soft_poly_min(height, 0.99, 0.3);
+        height = soft_poly_max(height, 0.01, 0.3);
+
+        return height;
+    }
+
+    return (large_flows + small_flows
+        + mix(
+            _sun_gran_bot_temp,
+            _sun_gran_top_temp,
+            gran * min(
+                large_sunspots.spot_mask * small_sunspots.spot_mask + 0.04f,
+                1.0f
+            )
+        ))
+        * 1.3f
+        * sunspots;
+}
+
+float get_sun_glow_map(vec3 coords) {
+    return get_sun_map(coords, false);
+}
+
+float get_sun_height_map(vec3 coords) {
+    return get_sun_map(coords, true);
+}
+
+// Below is unedited from SE.
+
+float   GetSurfaceHeight()
+{
+    vec2  in_tex_coord = in_tex_coord.xy * scaleParams.z + scaleParams.xy;
+    return texture(height_map_array, vec3(in_tex_coord, arrayParams.x)).x;
+}
+
+vec3    Rotate(float Angle, vec3 Axis, vec3 Vector)
+{
+    float cosa = cos(Angle);
+    float sina = sin(Angle);
+    float t = 1.0 - cosa;
+
+    mat3x3 M = mat3x3(
+        t * Axis.x * Axis.x + cosa,
+        t * Axis.x * Axis.y - sina * Axis.z,
+        t * Axis.x * Axis.z + sina * Axis.y,
+        t * Axis.x * Axis.y + sina * Axis.z,
+        t * Axis.y * Axis.y + cosa,
+        t * Axis.y * Axis.z - sina * Axis.x,
+        t * Axis.x * Axis.z - sina * Axis.y,
+        t * Axis.y * Axis.z + sina * Axis.x,
+        t * Axis.z * Axis.z + cosa);
+
+    return Vector * M;
+}
+
+vec2 inverseSF(vec3 p, float n)
+{
+    const float phi = 1.61803398875;
+
+    float m = 1.0 - 1.0/n;
+    
+    float fi = min(atan(p.y, p.x), PI);
+    float cosTheta = p.z;
+    
+    float k  = max(2.0, floor(log(n * PI * sqrt(5.0) * (1.0 - cosTheta*cosTheta)) / log(phi+1.0)));
+    float Fk = pow(phi, k) / sqrt(5.0);
+    vec2  F  = vec2(round(Fk), round(Fk * phi)); // k, k+1
+
+    vec2 ka = 2.0 * F / n;
+    vec2 kb = TAU * (fract((F+1.0) * phi) - (phi-1.0));
+    
+    mat2 iB = mat2(ka.y, -ka.x, kb.y, -kb.x ) / (ka.y*kb.x - ka.x*kb.y);
+    
+    vec2  c = floor(iB * vec2(fi, cosTheta - m));
+    float d = 8.0;
+    float j = 0.0;
+    for (int s=0; s<4; s++)
+    {
+        vec2 uv = vec2(float(s-2*(s/2)), float(s/2));
+        
+        float i = dot(F, uv + c);
+        
+        float fi = TAU*fract(i*phi);
+        float cosTheta = m - 2.0*i/n;
+        float sinTheta = sqrt(1.0 - cosTheta*cosTheta);
+        
+        vec3  q  = vec3(cos(fi)*sinTheta, sin(fi)*sinTheta, cosTheta);
+        vec3  r  = q - p;
+        float d2 = dot(r, r);
+        if (d2 < d) 
+        {
+            d = d2;
+            j = i;
+        }
+    }
+
+    return vec2(j, sqrt(d));
+}
+
+vec2 inverseSF(vec3 p, float n, out vec3 NearestPoint)
+{
+    const float phi = 1.61803398875;
+
+    float m = 1.0 - 1.0/n;
+    
+    float fi = min(atan(p.y, p.x), PI);
+    float cosTheta = p.z;
+    
+    float k  = max(2.0, floor( log(n * PI * sqrt(5.0) * (1.0 - cosTheta*cosTheta)) / log(phi+1.0)));
+    float Fk = pow(phi, k)/sqrt(5.0);
+    vec2  F  = vec2(round(Fk), round(Fk * phi)); // k, k+1
+
+    vec2 ka = 2.0 * F  /n;
+    vec2 kb = TAU * (fract((F+1.0) * phi) - (phi-1.0));
+    
+    mat2 iB = mat2(ka.y, -ka.x, kb.y, -kb.x ) / (ka.y*kb.x - ka.x*kb.y);
+    
+    vec2  c = floor(iB * vec2(fi, cosTheta - m));
+    float d = 8.0;
+    float j = 0.0;
+    for (int s=0; s<4; s++)
+    {
+        vec2 uv = vec2(float(s-2*(s/2)), float(s/2));
+        
+        float i = dot(F, uv + c);
+        
+        float fi = TAU*fract(i*phi);
+        float cosTheta = m - 2.0*i/n;
+        float sinTheta = sqrt(1.0 - cosTheta*cosTheta);
+        
+        vec3  q  = vec3(cos(fi)*sinTheta, sin(fi)*sinTheta, cosTheta);
+        vec3  r  = q - p;
+        float d2 = dot(r, r);
+        if (d2 < d) 
+        {
+            NearestPoint = q;
+            d = d2;
+            j = i;
+        }
+    }
+
+    return vec2(j, sqrt(d));
+}
+
+vec3    TurbulenceGasGiant(vec3 point)
+{
+    const float scale = 0.7;
+
+    vec3  twistedPoint = point;
+    vec3  cellCenter = vec3(0.0);
+    vec2  cell;
+    float r, fi, rnd, dist, dist2, dir;
+    float strength = 5.5;
+    float freq = 800 * scale;
+    float size = 15.0 * scale;
+    float dens = 0.8;
+
+    for (int i = 0; i<5; i++)
+    {
+        vec2  cell = inverseSF(point, freq, cellCenter);
+        rnd = hash(cell.x);
+        r = size * cell.y;
+
+        if ((rnd < dens) && (r < 1.0))
+        {
+            dir = sign(0.5 * dens - rnd);
+            dist = saturate(1.0 - r);
+            dist2 = saturate(0.5 - r);
+            fi = pow(dist, strength) * (exp(-6.0 * dist2) + 0.25);
+            twistedPoint = Rotate(dir * clouds_stripe_twist * sign(cellCenter.y) * fi, cellCenter.xyz, point);
+        }
+
+        freq = min(freq * 2.0, 1600.0);
+        size = min(size * 1.2, 30.0);
+        strength = strength * 1.5;
+        point = twistedPoint;
+    }
+
+    return twistedPoint;
+}
+
+vec3    CycloneNoiseGasGiant(vec3 point, inout float offset)
+{
+    vec3  rotVec = normalize(randomize);
+    vec3  twistedPoint = point;
+    vec3  cellCenter = vec3(0.0);
+    vec2  cell;
+    float r, fi, rnd, dist, dist2, dir;
+
+	// equatorial oval cyclones
+    float offs = 0.6;
+    float squeeze = 2.27; //1.7;
+    float strength = 2.5;
+    float freq = clouds_equatorial_cyclones_freq * 50.0;
+    float dens = clouds_equatorial_cyclones_density * 0.02;
+    float size = 5.0; //6.0;
+
+    for (int i=0; i<clouds_equatorial_cyclones_octaves; i++)
+    {
+        cell = inverseSF(vec3(point.x, point.y * squeeze, point.z), freq, cellCenter);
+        rnd = hash(cell.x);
+        r = size * cell.y;
+
+        if ((rnd < dens) && (r < 1.0))
+        {
+            dir = sign(0.7 * dens - rnd);
+            dist = saturate(1.0 - r);
+            dist2 = saturate(0.5 - r);
+            fi = pow(dist, strength) * (exp(-6.0 * dist2) + 0.5);
+            twistedPoint = Rotate(clouds_equatorial_cyclone_magn * dir * sign(cellCenter.y + 0.001) * fi, cellCenter.xyz, point);
+            offset += offs * fi * dir;
+        }
+
+        freq = min(freq * 2.0, 6400.0);
+        dens = min(dens * 3.5, 0.3);
+        size = min(size * 1.5, 15.0);
+        offs = offs * 0.85;
+        squeeze = max(squeeze - 0.3, 1.0);
+        strength *= 1.3;
+        point = twistedPoint;
+    }
+
+	// polar round cyclones
+    strength = 7.125;
+    freq = clouds_polar_cyclones_freq * 800.0;
+    dens = 0.5;
+    size = 8.0;
+    offs = clouds_polar_cyclones_magn * smoothstep(clouds_polar_cyclones_latitude - 0.1, clouds_polar_cyclones_latitude + 0.1, abs(point.y));
+
+    for (int i=0; i<clouds_polar_cyclones_octaves; i++)
+    {
+        cell = inverseSF(point, freq, cellCenter);
+        rnd = hash(cell.x);
+        r = size * cell.y;
+
+        if ((rnd < dens) && (r < 1.0))
+        {
+            dir = sign(0.7 * dens - rnd);
+            dist = saturate(1.0 - r);
+            dist2 = saturate(0.5 - r);
+            fi = pow(dist, strength) * (exp(-6.0 * dist2) + 0.5);
+            twistedPoint = Rotate(clouds_polar_cyclones_magn * dir * sign(cellCenter.y + 0.001) * fi, cellCenter.xyz, point);
+            offset += offs * fi * dir;
+        }
+
+        freq = min(freq * 1.8, 6400.0);
+        size = min(size * 1.2, 15.0);
+        offs = offs * 0.95;
+        strength *= 1.3;
+        point = twistedPoint;
+    }
+
+    return twistedPoint;
+}
+
+float   HeightMapCloudsGasGiant(vec3 point)
+{
+    vec3  twistedPoint = point;
+
+    NoiseParams noise = NoiseParams(4.0, 2.218281828459, 0.5, 0.8, 0.0001, 0.0, 1.0);
+
+    // Compute zones
+    vec3  zonePoint = randomize * 7.1563;
+    zonePoint.y += twistedPoint.y * clouds_stripe_zones * 0.5;
+    float zones = _noise(zonePoint) * 0.6 + 0.25;
+    float offset = 0.0;
+
+    // Compute cyclons
+    if (clouds_equatorial_cyclones_octaves > 0.0)
+        twistedPoint = CycloneNoiseGasGiant(twistedPoint, offset);
+
+    // Compute turbulence
+    twistedPoint = TurbulenceGasGiant(twistedPoint);
+
+    // Compute stripes
+    noise.octaves = clouds_octaves;
+    float turbulence = noise_fbm_float(twistedPoint * 0.2, noise);
+    twistedPoint = twistedPoint * (0.00515 * clouds_freq) - turbulence * 0.0005;
+	//twistedPoint = twistedPoint * (0.05 * clouds_freq) + randomize;
+    twistedPoint.y *= 100.0 + turbulence;
+    float height = clouds_stripe_fluct * (noise_fbm_float(twistedPoint, noise) * 0.7 + 0.5);
+
+    return zones + height + offset;
+}
+
+vec4    GetGasGiantCloudsColor(float height)
+{
+    const float hScale = float(BIOME_CLOUD_LAYERS-1) / float(BIOME_SURF_LAYERS);
+    const float hMin   =       0.5 * hScale;
+    const float hMax   = 1.0 - 0.5 * hScale;
+    return texture(biome_data_table, vec2(1.0, clamp(height * hScale, hMin, hMax)));
+}
+
+#endif

@@ -1,0 +1,148 @@
+// Common procedural planet generator routines
+// This is include file for the procedural planet generator shaders
+// Copyright (C) 2012-2022  Vladimir Romanyuk @ Cosmographic Software
+// All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions
+// are met:
+// 1. Redistributions of source code must retain the above copyright
+//    notice, this list of conditions and the following disclaimer.
+// 2. Redistributions in binary form must reproduce the above copyright
+//    notice, this list of conditions and the following disclaimer in the
+//    documentation and/or other materials provided with the distribution.
+// 3. Neither the name of the copyright holders nor the names of its
+//    contributors may be used to endorse or promote products derived from
+//    this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+// ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+// INTERRUPTION)HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+// THE POSSIBILITY OF SUCH DAMAGE.
+
+#include "noise.glh"
+
+#ifdef _FRAGMENT_
+
+#define BIOME_BOTTOM 0
+#define BIOME_SHELF 1
+#define BIOME_BEACH 2
+#define BIOME_LOWLAND 3
+#define BIOME_UPLAND 4
+#define BIOME_ROCK 5
+#define BIOME_SNOW 6
+#define BIOME_ICE 7
+#define BIOME_LAVA 8
+#define BIOME_ORG_U_STEPPE 9
+#define BIOME_ORG_U_FOREST 10
+#define BIOME_ORG_U_GRASS 11
+#define BIOME_ORG_M_STEPPE 12
+#define BIOME_ORG_M_FOREST 13
+#define BIOME_ORG_M_GRASS 14
+#define BIOME_EXO_U_STEPPE 15
+#define BIOME_EXO_U_FOREST 16
+#define BIOME_EXO_U_GRASS 17
+#define BIOME_EXO_M_STEPPE 18
+#define BIOME_EXO_M_FOREST 19
+#define BIOME_EXO_M_GRASS 20
+
+#define BIOME_SURF_LAYERS 21
+#define BIOME_CLOUD_LAYERS 8
+#define BIOME_OCEAN_LAYERS 2
+
+#define DET_TEX_RES 1024
+#define DET_TEX_MAX_LEVEL 9
+#define UV_SHATTER (0.5 / float(DET_TEX_RES))
+#define NOISE_INV_RES (1.0 / 512.0)
+
+const float PI = 3.14159265358;
+const float TAU = PI * 2.0;
+
+//#define IMPROVED_TEX_PERLIN
+#define NOISE_TEX_3D_SIZE 64.0
+
+#define saturate(x) clamp(x, 0.0, 1.0)
+
+float soft_poly_min(float a, float b, float k) {
+    float diff = b - a;
+    float h = saturate(0.5 + 0.5 * diff / k);
+    return b - h * (diff + k * (1.0f - h));
+}
+
+float soft_poly_max(float a, float b, float k) {
+    float diff = a - b;
+    float h = saturate(0.5 + 0.5 * diff / k);
+    return b + h * (diff + k * (1.0f - h));
+}
+
+float hash(float p) {
+    return fract(sin(p) * 158.5453123);
+}
+
+vec3 hash3(vec2 p) {
+    return fract(sin(vec3( dot(p,vec2(127.1,311.7)), dot(p,vec2(269.5,183.3)), dot(p,vec2(419.2,371.9)) )) * 43758.5453);
+}
+
+vec4 hash4(vec2 p) {
+    return fract(sin(vec4( dot(p,vec2(127.1,311.7)), dot(p,vec2(269.5,183.3)), dot(p,vec2(419.2,371.9)), dot(p,vec2(398.1,176.7)) )) * 43758.5453);
+}
+
+struct NoiseParams {
+    float lacunarity;
+    float octaves;
+    float h;
+    float offset;
+    float ridge_smooth;
+    float add;
+    float mul;
+};
+
+const vec3 vyd = vec3(3.33, 5.71, 1.96);
+const vec3 vzd = vec3(7.77, 2.65, 4.37);
+const vec3 vwd = vec3(1.13, 2.73, 6.37);
+
+#define noise_vec2(coords) vec2(_noise(coords), _noise(coords + vyd))
+#define noise_vec3(coords) vec3(_noise(coords), _noise(coords + vyd), _noise(coords + vzd))
+#define noise_vec4(coords) vec4(_noise(coords), _noise(coords + vyd), _noise(coords + vzd), _noise(coords + vwd))
+#define noise_u_float(coords) _noise(coords) * 0.5 + 0.5
+#define noise_u_vec3(coords) noise_vec3(coords) * 0.5 + vec3(0.5)
+#define noise_u_vec4(coords) noise_vec4(coords) * 0.5 + vec4(0.5)
+
+float noise_fbm_float(vec3 coords, NoiseParams noise)
+{
+    float sum = 0.0f;
+
+	float ampl = 1.0f;
+	float gain = pow(noise.lacunarity, -noise.h);
+
+    for (int i = 0; i < noise.octaves; i++) {
+        sum += _noise(coords) * ampl * noise.mul + noise.add;
+		ampl *= gain;
+        coords *= noise.lacunarity;
+    }
+
+    return sum;
+}
+
+vec3 noise_fbm_vec3(vec3 coords, NoiseParams noise) {
+    vec3 sum = vec3(0.0f);
+	float ampl = 1.0f;
+	float gain = pow(noise.lacunarity, -noise.h);
+
+    for (int i = 0; i < noise.octaves; i++) {
+        sum += noise_vec3(coords) * ampl;
+		ampl *= gain;
+        coords *= noise.lacunarity;
+    }
+
+    return sum;
+}
+
+#endif
