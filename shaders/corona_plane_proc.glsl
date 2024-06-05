@@ -132,21 +132,21 @@ void main(void)
             vec3(0.55f),
             bright.spot_brightness - 2000.0 / (36.0f * bright.brightness)
         ) * _color
-    ) * 0.2f;
+    ) * (0.7f - min(eucl_dist, 0.5f));
     color += saturate(
         mix(
             1.0f - vec3(prominences),
             vec3(0.6f),
             bright.spot_brightness - 2000.0 / (36.0f * bright.brightness)
         ) * _color
-    ) * 3.0f;
+    ) * (4.0f - eucl_dist);
     color += saturate(
         mix(
             1.0f - vec3(prominences),
             vec3(0.65f),
             bright.spot_brightness - 2000.0 / (36.0f * bright.brightness)
         ) * _color
-    ) * 7.0f;
+    ) * (7.0f - eucl_dist);
 
     vec3 ray = in_pix_pos + eye.pos;
     float dist = length(ray);
