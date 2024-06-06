@@ -50,7 +50,7 @@ void main(void)
 {
     vec3 _color = Color;
     BrightTy bright = BrightTy(Bright.x, Bright.y, Bright.z, Bright.w);
-    ShapeTy shape = ShapeTy(Shape.x, Shape.y, Shape.z, Shape.w);
+    ShapeTy shape = ShapeTy(Shape.x, sqrt(Shape.y) + 3.0f, Shape.z, Shape.w);
     EyeTy eye = EyeTy(vec3(EyePos.x, EyePos.y, EyePos.z), EyePos.w);
 
     vec2 uv0 = in_tex_coord * 2.0 - 1.0;

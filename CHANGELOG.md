@@ -1,19 +1,23 @@
 # Changelog
 
-## CM 0.1.3
+## AM 0.1.4
+
+- Change: Tweaked stelar coronae to have lower `ray_curvature` 
+
+## AM 0.1.3
 
 - Change: Tweaked Prominence brightness slightly
 
-## CM 0.1.2
+## AM 0.1.2
 
 - Fix: Small sunspots now only generate when large sunspots are present
 
-## CM 0.1.1
+## AM 0.1.1
 
 - Fix: Sunspots no longer erroneously appear on red giants
 - Fix: Fixed occasional height anomalies of red giant granularities
 
-## CM 0.1.0
+## AM 0.1.0
 
 - Feature: Custom stellar surfaces
 - Feature: Custom stellar coronae

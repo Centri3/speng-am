@@ -1,4 +1,4 @@
-# Centri's Mod
+# Alison's Mod
 
 ## Preview
 
@@ -7,6 +7,6 @@
 ![](assets/flares-3.png)
 ![](assets/flares-4.png)
 
-## Downloading
+## Installing
 
 Clone the repository and place it in the addons folder.
