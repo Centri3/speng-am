@@ -1,5 +1,9 @@
 # Changelog
 
+### AM 0.1.6
+
+- Fix: Brown dwarfs are no longer pitch black. Whoops
+
 ### AM 0.1.5
 
 - Change: Tweaked blue stars to have dimmer stellar coronae.

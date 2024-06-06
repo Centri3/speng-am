@@ -9,7 +9,7 @@
 void main()
 {
     vec3  point = get_surface_point();
-    float surfTempS = get_sun_glow_map(point); // in thousand Kelvins
+    float surfTempS = get_brown_dwarf_glow_map(point); // in thousand Kelvins
 
     float height = GetSurfaceHeight();
     float surfTempB = mix(1.0, GetGasGiantCloudsColor(height).a, clouds_curr_layer);
