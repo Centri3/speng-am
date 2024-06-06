@@ -50,8 +50,11 @@ void main(void)
 {
     vec3 _color = Color;
     BrightTy bright = BrightTy(Bright.x, Bright.y, Bright.z, Bright.w);
-    ShapeTy shape = ShapeTy(Shape.x, sqrt(Shape.y) + 3.0f, Shape.z, Shape.w);
+    ShapeTy shape = ShapeTy(Shape.x, Shape.y * 0.1f, Shape.z, Shape.w);
     EyeTy eye = EyeTy(vec3(EyePos.x, EyePos.y, EyePos.z), EyePos.w);
+
+    // Xanii would be proud
+    bool is_blue = _color.b > (_color.r + _color.g);
 
     vec2 uv0 = in_tex_coord * 2.0 - 1.0;
     vec2 uv = uv0 * shape.ray_curvature * 0.05;
@@ -122,6 +125,10 @@ void main(void)
         ),
         NoiseParams(3.2f, 8.0f, 0.4f, 0.0f, 0.0001, 0.1, 0.55)
     );
+
+    if (is_blue) {
+        color.rgb *= 0.4f;
+    }
 
     // Doing this 3 times allows prominences to be brighter near the middle. There's probably a
     // better way to do this, but I'm inexperienced.

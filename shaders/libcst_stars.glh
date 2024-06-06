@@ -136,6 +136,7 @@ float get_map(vec3 coords, uint map_type, uint body_type) {
 
     bool is_red_giant = star.gran_freq < 5.0f;
     if (is_red_giant && body_type == BODY_TYPE__MAIN_SEQUENCE) {
+        star.flow_magn.y = 10.0f;
         star.flow_octaves.x = 1.0f;
         star.flow_octaves.y = 1.0f;
         star.gran_magn = min(star.gran_magn, 1.4f);
