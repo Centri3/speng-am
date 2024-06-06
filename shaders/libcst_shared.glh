@@ -131,6 +131,20 @@ float noise_fbm_float(vec3 coords, NoiseParams noise)
     return sum;
 }
 
+vec2 noise_fbm_vec2(vec3 coords, NoiseParams noise) {
+    vec2 sum = vec2(0.0f);
+	float ampl = 1.0f;
+	float gain = pow(noise.lacunarity, -noise.h);
+
+    for (int i = 0; i < noise.octaves; i++) {
+        sum += noise_vec2(coords) * ampl;
+		ampl *= gain;
+        coords *= noise.lacunarity;
+    }
+
+    return sum;
+}
+
 vec3 noise_fbm_vec3(vec3 coords, NoiseParams noise) {
     vec3 sum = vec3(0.0f);
 	float ampl = 1.0f;
