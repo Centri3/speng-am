@@ -1,8 +1,16 @@
 # Changelog
 
+### AM 0.1.7
+
+- Change: Flares are now rarer.
+- Change: Flares have been toned down a little.
+- Change: Improved detail of flares.
+- Change: Improved detail of prominences.
+- Removed superflares.
+
 ### AM 0.1.6
 
-- Fix: Brown dwarfs are no longer pitch black. Whoops
+- Fix: Brown dwarfs are no longer pitch black. Whoops.
 
 ### AM 0.1.5
 
