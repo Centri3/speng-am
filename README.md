@@ -7,9 +7,11 @@
 ![](assets/flares-3.png)
 ![](assets/flares-4.png)
 
-## Installing
+## Installation & Removal
 
 Clone the repository and place it in the addons folder.
+
+Remove the cache when installing or removing this mod.
 
 ## Known Limitations
 
